@@ -12,19 +12,11 @@ from datetime import datetime, timedelta
 
 # Wishlist keywords (must be in lowercase)
 wishlist = [
-    "11.5", "mk18", "qrf-10", "42", "h3", "ssa", "ssae", "ssaex", "sd3g", "sde", "sdc", "ssf",
-    "prong", "prong flash hider", "surefire socom", "exps3-1", "g43", "g45", "surefire m640dft",
-    "m640dft", "ds-sr07", "dssr07", "neomagsentry", "neomagsentry strap", "lightbar scout mount",
-    "lightbar", "scout mount", "magpul bad", "magpul battery assist device", "bad", "sba4", "sba5",
-    "radian raptor sd", "sd", "esk selector", "esk", "magpul esk", "folding stock adapter",
-    "law tactical", "law tactical folding", "folding stock", "vikings tactics", "pmm ar15 magwell",
-    "pmm magwell", "magpul moe k2", "magpul moe", "magpul k2", "glock 17 magazines", "modular magwell 01",
-    "glock modular", "glock modular magwell", "glock magwell", "magewell 01"
 ]
 
 # Email settings
-EMAIL = "romanhallfb@gmail.com"           # Replace with your email
-EMAIL_PASSWORD = "iblo iytc tlyv ioqb"     # Replace with your app password (not your Gmail password)
+EMAIL = "@gmail.com"           # Replace with your email
+EMAIL_PASSWORD = "xxx xxx xxx xxx"     # Replace with your app password (not your Gmail password)
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 
