@@ -10,17 +10,24 @@ from email.mime.multipart import MIMEMultipart
 import os
 from datetime import datetime, timedelta
 
-# Wishlist keywords (must be in lowercase)
+# Wishlist (all lowercase)
 wishlist = [
+    "11.5", "mk18", "qrf-10", "42", "h3", "ssa", "ssae", "ssaex", "sd3g", "sde", "sdc", "ssf",
+    "prong", "prong flash hider", "surefire socom", "exps3-1", "g43", "g45", "surefire m640dft",
+    "m640dft", "ds-sr07", "dssr07", "neomagsentry", "neomagsentry strap", "lightbar scout mount",
+    "lightbar", "scout mount", "magpul bad", "magpul battery assist device", "bad", "sba4", "sba5",
+    "radian raptor sd", "sd", "esk selector", "esk", "magpul esk", "folding stock adapter",
+    "law tactical", "law tactical folding", "folding stock", "vikings tactics", "pmm ar15 magwell",
+    "pmm magwell", "g33"
 ]
 
 # Email settings
-EMAIL = "@gmail.com"           # Replace with your email
-EMAIL_PASSWORD = "xxx xxx xxx xxx"     # Replace with your app password (not your Gmail password)
+EMAIL = "romanhallfb@gmail.com"           # Replace with your email
+EMAIL_PASSWORD = "iblo iytc tlyv ioqb"     # Use Gmail App Password
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 
-# History file to avoid duplicates
+# History tracking
 HISTORY_FILE = "match_history.txt"
 
 
@@ -35,7 +42,6 @@ def _setup_driver():
 
 
 def _load_history():
-    """Load match history from file, returns a dict {title: timestamp}"""
     history = {}
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
@@ -49,18 +55,16 @@ def _load_history():
 
 
 def _save_to_history(matches):
-    """Append new matches to history file"""
     with open(HISTORY_FILE, "a", encoding="utf-8") as f:
         for match in matches:
             f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}|{match['title']}\n")
 
 
 def _send_email(matches):
-    """Send email only for matches not seen in the past 24h"""
     recent_history = _load_history()
     cutoff_time = datetime.now() - timedelta(hours=24)
-
     new_matches = []
+
     for match in matches:
         title = match['title']
         if title in recent_history and recent_history[title] > cutoff_time:
@@ -72,7 +76,6 @@ def _send_email(matches):
         print("No new unique matches to send.")
         return
 
-    # Compose and send the email
     subject = "Wishlist Match(es) from Reddit Scraper"
     body = "\n".join([f"{m['title']}\n{m['url']}\n{'-'*50}" for m in new_matches])
 
@@ -92,46 +95,16 @@ def _send_email(matches):
         print(f"Failed to send email: {e}")
 
 
-def scrape_once():
-    """Scrapes once and returns a list of matched items"""
-    matches = []
-    seen_posts = set()
-
-    driver = _setup_driver()
-    driver.get("https://www.reddit.com/r/GunAccessoriesForSale/new/")
-    time.sleep(5)
-
-    posts = driver.find_elements(By.TAG_NAME, "shreddit-post")
-    for post in posts:
-        try:
-            post_id = post.get_attribute("id") or post.get_attribute("content-href")
-            if post_id in seen_posts:
-                continue
-            seen_posts.add(post_id)
-
-            article = post.find_element(By.XPATH, "./ancestor::article")
-            title = article.get_attribute("aria-label")
-            url = post.get_attribute("content-href")
-
-            if any(item in title.lower() for item in wishlist):
-                matches.append({"title": title, "url": url})
-        except Exception as e:
-            print(f"Error: {e}")
-
-    driver.quit()
-    return matches
-
-
-def scrape_and_alert(interval=60):
-    """Continuously scrapes and sends email alerts for new matches"""
+def scrape_and_alert(interval=900):  # 15 minutes = 900 seconds
     seen_posts = set()
 
     while True:
         driver = _setup_driver()
         driver.get("https://www.reddit.com/r/GunAccessoriesForSale/new/")
         time.sleep(5)
+
         posts = driver.find_elements(By.TAG_NAME, "shreddit-post")
-        new_matches = []
+        matches = []
 
         for post in posts:
             try:
@@ -140,21 +113,43 @@ def scrape_and_alert(interval=60):
                     continue
                 seen_posts.add(post_id)
 
-                article = post.find_element(By.XPATH, "./ancestor::article")
-                title = article.get_attribute("aria-label")
-                url = post.get_attribute("content-href")
+                post_url = post.get_attribute("content-href")
 
-                if any(item in title.lower() for item in wishlist):
-                    new_matches.append({"title": title, "url": url})
-                    print(f"Match: {title}")
-                    print(f"{url}\n{'-'*50}")
+                # Visit full post page
+                driver.execute_script(f"window.open('{post_url}', '_blank');")
+                driver.switch_to.window(driver.window_handles[-1])
+                time.sleep(3)
+
+                try:
+                    full_title = driver.find_element(By.TAG_NAME, "h1").text.lower()
+                except:
+                    full_title = ""
+
+                try:
+                    body_elem = driver.find_element(By.XPATH, "//div[contains(@data-testid, 'post-container')]")
+                    body_text = body_elem.text.lower()
+                except:
+                    body_text = ""
+
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+
+                combined_text = f"{full_title} {body_text}"
+
+                if any(word in combined_text for word in wishlist):
+                    matches.append({"title": full_title.strip(), "url": post_url})
+                    print(f"Match: {full_title.strip()}")
+                    print(f"{post_url}\n{'-'*50}")
+
             except Exception as e:
                 print(f"Error: {e}")
 
         driver.quit()
 
-        if new_matches:
-            _send_email(new_matches)
+        if matches:
+            _send_email(matches)
+        else:
+            print("No matches found this run.")
 
-        print(f"Waiting {interval} seconds before next check...\n")
+        print(f"Sleeping for {interval // 60} minutes...\n")
         time.sleep(interval)
